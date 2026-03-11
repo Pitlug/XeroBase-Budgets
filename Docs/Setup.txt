@@ -1,0 +1,11 @@
+To run the python env envirmonent run:
+
+- Remove your old Env if it exists
+rm -rf env
+- Create new virtual envirmonent
+python3 -m venv env
+- Activate it
+source env/bin/activate
+- Install your requirements
+python -m pip install -r requirements.txt
+
