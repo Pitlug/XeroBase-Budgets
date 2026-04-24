@@ -34,27 +34,38 @@ function Form({ route, method }) {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="form-container">
-            <h1>{name}</h1>
-            <input
-                className="form-input"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Username"
-            />
-            <input
-                className="form-input"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-            />
-            {loading && <LoadingIndicator />}
-            <button className="form-button" type="submit">
-                {name}
-            </button>
-        </form>
+        <div className="page-wrapper">
+            {method === "login" && (
+                <button
+                    className="register-redirect-button"
+                    onClick={() => navigate("/register")}
+                    type="button"
+                >
+                    Register
+                </button>
+            )}
+            <form onSubmit={handleSubmit} className="form-container">
+                <h1>{name}</h1>
+                <input
+                    className="form-input"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Username"
+                />
+                <input
+                    className="form-input"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Password"
+                />
+                {loading && <LoadingIndicator />}
+                <button className="form-button" type="submit">
+                    {name}
+                </button>
+            </form>
+        </div>
     );
 }
 

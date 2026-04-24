@@ -34,3 +34,28 @@
 .form-button:hover {
   background-color: #0056b3;
 }
+
+.page-wrapper {
+  position: relative;
+  min-height: 100vh;
+}
+
+.register-redirect-button {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  background-color: #e53935;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.2s ease-in-out;
+  z-index: 1000;
+}
+
+.register-redirect-button:hover {
+  background-color: #b71c1c;
+}
