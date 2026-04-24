@@ -6,7 +6,7 @@ Create a zero base budgeting software so I can access it anywhere. And easily be
 
 How to setup the repo for production:
 
-- First setup cloudflare and setup tunnels to the service. Then add this docker-config.yml file:
+### First setup cloudflare and setup tunnels to the service. Then add this docker-config.yml file:
 
 services:
   db:
@@ -47,8 +47,8 @@ networks:
     driver: bridge
 
 
-- Afterwards clone the code to your home directory or /var/<project> #reccomended
-- Then create your .env file in the root of the project
+### Afterwards clone the code to your home directory or /var/<project> #reccomended
+### Then create your .env file in the root of the project
 
 # .env
 DB_NAME=mydb
@@ -57,9 +57,9 @@ DB_PWD=<password>
 DB_HOST=localhost
 DB_PORT=5432
 
-- Then start docker with: docker compose up -d where your docker-compose.yml file lives
+### Then start docker with: docker compose up -d where your docker-compose.yml file lives
 
-- Then start Django:
+### Then start Django:
 
 cd XeroBase-Budgets/backend
 
@@ -73,13 +73,13 @@ source venv/bin/activate
 python manage.py migrate
 python manage.py runserver 8000
 
-- Then start react with:
+### Then start react with:
 
 cd XeroBase-Budgets/xerobase-project
 npm install                        # first time only
 npm run build
 
-- Install Gunicorn and Nginx
+### Install Gunicorn and Nginx
 bash# Gunicorn (inside your venv)
 cd XeroBase-Budgets/backend
 source venv/bin/activate
@@ -88,7 +88,7 @@ pip install gunicorn
 # Nginx
 sudo apt install nginx -y
 
-- Create a Gunicorn systemd service
+### Create a Gunicorn systemd service
 bash
 
 sudo nano /etc/systemd/system/xerobase-django.service
@@ -113,7 +113,7 @@ bashsudo systemctl daemon-reload
 sudo systemctl enable --now xerobase-django
 sudo systemctl status xerobase-django   # confirm it's running
 
-- Configure Nginx
+### Configure Nginx
 bash
 
 sudo nano /etc/nginx/sites-available/xerobase
@@ -153,39 +153,39 @@ nginxserver {
         proxy_set_header X-Real-IP $remote_addr;
     }
 
-    # Django static files (admin CSS etc.)
+    #Django static files (admin CSS etc.)
     location /static/ {
         alias /home/pitlug/XeroBase-Budgets/backend/staticfiles/;
     }
 }
 
 bash
-# Enable the site
+### Enable the site
 sudo ln -s /etc/nginx/sites-available/xerobase /etc/nginx/sites-enabled/
 sudo rm /etc/nginx/sites-enabled/default   # remove default placeholder
 
-# Test config and reload
+### Test config and reload
 sudo nginx -t
 sudo systemctl enable --now nginx
 sudo systemctl reload nginx
 
-- Collect Django static files:
+### Collect Django static files:
 
 cd XeroBase-Budgets/backend
 
 source venv/bin/activate
 
-# Add to settings.py if not already there
-# STATIC_ROOT = BASE_DIR / "staticfiles"
+### Add to settings.py if not already there
+### STATIC_ROOT = BASE_DIR / "staticfiles"
 
 python manage.py collectstatic --no-input
 
 - When you make code changes
 
-# After React changes — rebuild
+### After React changes — rebuild
 cd xerobase-project && npm run build
 
-# After Django changes — restart gunicorn
+### After Django changes — restart gunicorn
 sudo systemctl restart xerobase-django
 
 - If having problems with NGINX:
@@ -201,6 +201,6 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 Confirm what Nginx is actually serving:
-# Should show your dist folder contents
+### Should show your dist folder contents
 ls /home/pitlug/XeroBase-Budgets/xerobase-project/dist
 
