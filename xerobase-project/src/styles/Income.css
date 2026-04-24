@@ -1,0 +1,135 @@
+.income-page {
+  min-height: 100vh;
+  background-color: #f0f2f5;
+}
+
+.income-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+.income-title {
+  font-size: 2rem;
+  color: #1a1a2e;
+  margin-bottom: 28px;
+}
+
+.income-form-card,
+.income-list-card {
+  background: white;
+  border-radius: 8px;
+  padding: 28px;
+  margin-bottom: 28px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.income-form-card h2,
+.income-list-card h2 {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f2f5;
+}
+
+.income-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+}
+
+.form-group input {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #4fc3f7;
+}
+
+.submit-btn {
+  grid-column: 1 / -1;
+  padding: 12px;
+  background-color: #1a1a2e;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 8px;
+}
+
+.submit-btn:hover {
+  background-color: #2d2d5e;
+}
+
+.submit-btn:disabled {
+  background-color: #999;
+  cursor: not-allowed;
+}
+
+.income-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.income-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background-color: #f0f2f5;
+  color: #555;
+  font-weight: 600;
+  border-bottom: 2px solid #ddd;
+}
+
+.income-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f2f5;
+  color: #333;
+}
+
+.income-table tr:hover td {
+  background-color: #fafafa;
+}
+
+.delete-btn {
+  background: #e53935;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+
+.delete-btn:hover {
+  background: #b71c1c;
+}
+
+.no-entries {
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  padding: 20px 0;
+}
