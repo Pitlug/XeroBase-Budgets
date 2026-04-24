@@ -1,3 +1,6 @@
 backend/backend/__pycache__
 backend/api/__pycache__
 env
+backend/.env
+backend/venv
+backend/venv/include/python3.12
