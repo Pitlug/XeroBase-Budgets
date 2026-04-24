@@ -10,3 +10,15 @@ class Note(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class IncomeEntry(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="income_entries")
+    date = models.DateField()
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    income_source = models.CharField(max_length=255)
+    earned_by = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.earned_by} - {self.income_source} - {self.amount} on {self.date}"
