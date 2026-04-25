@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Note, IncomeEntry
+from .models import Note, IncomeEntry, ExpenseEntry
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -25,4 +25,11 @@ class IncomeEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = IncomeEntry
         fields = ["id", "date", "amount", "income_source", "earned_by", "created_at", "user"]
+        extra_kwargs = {"user": {"read_only": True}}
+
+
+class ExpenseEntrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExpenseEntry
+        fields = ["id", "date", "amount", "category", "merchant", "description", "payment_method", "created_at", "user"]
         extra_kwargs = {"user": {"read_only": True}}

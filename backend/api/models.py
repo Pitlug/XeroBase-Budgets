@@ -22,3 +22,17 @@ class IncomeEntry(models.Model):
 
     def __str__(self):
         return f"{self.earned_by} - {self.income_source} - {self.amount} on {self.date}"
+
+
+class ExpenseEntry(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="expense_entries")
+    date = models.DateField()
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    category = models.CharField(max_length=100)
+    merchant = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    payment_method = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.merchant} - {self.category} - {self.amount} on {self.date}"

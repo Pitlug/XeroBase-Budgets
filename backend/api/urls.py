@@ -6,4 +6,6 @@ urlpatterns = [
     path("notes/delete/<int:pk>/", views.NoteDelete.as_view(), name="delete-note"),
     path("income/", views.IncomeEntryListCreate.as_view(), name="income-list"),
     path("income/delete/<int:pk>/", views.IncomeEntryDelete.as_view(), name="delete-income"),
+    path("expenses/", views.ExpenseEntryListCreate.as_view(), name="expense-list"),
+    path("expenses/delete/<int:pk>/", views.ExpenseEntryDelete.as_view(), name="delete-expense"),
 ]

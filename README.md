@@ -64,14 +64,13 @@ DB_PORT=5432
 cd XeroBase-Budgets/backend
 
 # First time only
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Every time
 source venv/bin/activate
-python manage.py migrate
-python manage.py runserver 8000
+python3 manage.py migrate
 
 ### Then start react with:
 
@@ -204,3 +203,12 @@ Confirm what Nginx is actually serving:
 ### Should show your dist folder contents
 ls /home/pitlug/XeroBase-Budgets/xerobase-project/dist
 
+### Rebuild React with the fix
+cd ~/XeroBase-Budgets/xerobase-project
+npm run build
+
+### Restart Django/Gunicorn
+sudo systemctl restart xerobase-django
+
+### Reload Nginx
+sudo systemctl reload nginx
