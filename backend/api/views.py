@@ -63,7 +63,7 @@ class ExpenseEntryListCreate(generics.ListCreateAPIView):
         serializer.save(user=self.request.user)
 
 
-class ExpenseEntryDelete(generics.DestroyAPIView):
+class ExpenseEntryDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ExpenseEntrySerializer
     permission_classes = [IsAuthenticated]
 

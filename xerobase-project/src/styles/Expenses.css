@@ -1,5 +1,243 @@
-/* === New rules for category management + merchant autocomplete === */
+/* === Page layout === */
+.expenses-page {
+  min-height: 100vh;
+  background-color: #f0f2f5;
+}
 
+.expenses-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+.expenses-title {
+  font-size: 2rem;
+  color: #1a1a2e;
+  margin-bottom: 28px;
+}
+
+.expenses-form-card,
+.expenses-list-card {
+  background: white;
+  border-radius: 8px;
+  padding: 28px;
+  margin-bottom: 28px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.expenses-form-card h2,
+.expenses-list-card h2 {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f2f5;
+}
+
+.expenses-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group-full {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  background-color: white;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #4fc3f7;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.submit-btn {
+  grid-column: 1 / -1;
+  padding: 12px;
+  background-color: #1a1a2e;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 8px;
+}
+
+.submit-btn:hover {
+  background-color: #2d2d5e;
+}
+
+.submit-btn:disabled {
+  background-color: #999;
+  cursor: not-allowed;
+}
+
+/* === Form actions row (when editing — Save + Cancel) === */
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.form-actions .submit-btn {
+  flex: 1;
+  margin-top: 0;
+}
+
+.cancel-edit-btn {
+  flex: 0 0 auto;
+  padding: 12px 20px;
+  background-color: #e0e0e0;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cancel-edit-btn:hover {
+  background-color: #ccc;
+}
+
+/* === Table === */
+.expenses-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.expenses-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background-color: #f0f2f5;
+  color: #555;
+  font-weight: 600;
+  border-bottom: 2px solid #ddd;
+}
+
+.expenses-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f2f5;
+  color: #333;
+  vertical-align: top;
+}
+
+.expenses-table tr:hover td {
+  background-color: #fafafa;
+}
+
+.expenses-table tr.editing-row td {
+  background-color: #fff8e1;
+}
+
+.category-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.description-cell {
+  max-width: 250px;
+  font-size: 13px;
+  color: #666;
+}
+
+/* === Action buttons in table === */
+.action-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.edit-btn {
+  background: #1976d2;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+
+.edit-btn:hover {
+  background: #0d47a1;
+}
+
+.delete-btn {
+  background: #e53935;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+
+.delete-btn:hover {
+  background: #b71c1c;
+}
+
+.no-entries {
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  padding: 20px 0;
+}
+
+/* === Editing-mode banner === */
+.editing-banner {
+  background: #fff8e1;
+  border: 1px solid #ffd54f;
+  border-radius: 4px;
+  padding: 8px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #6d4c00;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* === Category management === */
 .label-row {
   display: flex;
   justify-content: space-between;
@@ -26,10 +264,6 @@
 
 .new-category-row input {
   flex: 1;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
 }
 
 .add-cat-btn,
@@ -60,7 +294,7 @@
   background-color: #ccc;
 }
 
-/* Merchant ghost-text autocomplete */
+/* === Merchant ghost-text autocomplete === */
 .merchant-wrapper {
   position: relative;
 }
@@ -109,7 +343,7 @@
   font-size: 11px;
 }
 
-/* Modal */
+/* === Modals === */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -186,4 +420,65 @@
 .category-manage-list li span {
   color: #333;
   font-size: 14px;
+}
+
+/* === Confirm-delete modal === */
+.confirm-modal-card {
+  max-width: 400px;
+}
+
+.confirm-summary {
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 13px;
+  color: #555;
+  margin: 12px 0 20px;
+}
+
+.confirm-summary div {
+  margin: 3px 0;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.confirm-cancel-btn {
+  padding: 9px 18px;
+  background: #e0e0e0;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.confirm-cancel-btn:hover {
+  background: #ccc;
+}
+
+.confirm-delete-btn {
+  padding: 9px 18px;
+  background: #e53935;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.confirm-delete-btn:hover {
+  background: #b71c1c;
+}
+
+@media (max-width: 768px) {
+  .expenses-form {
+    grid-template-columns: 1fr;
+  }
 }

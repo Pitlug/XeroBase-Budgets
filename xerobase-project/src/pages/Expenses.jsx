@@ -43,14 +43,19 @@ function Expenses() {
     const [paymentMethod, setPaymentMethod] = useState("");
     const [loading, setLoading] = useState(false);
 
-    // For "Other" -> add new category inline
+    // Edit mode — when set, the form updates this entry instead of creating new
+    const [editingId, setEditingId] = useState(null);
+
+    // Inline new-category UI
     const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState("");
 
-    // For "Manage Categories" modal
+    // Modals
     const [showManageModal, setShowManageModal] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState(null); // entry or null
 
     const merchantInputRef = useRef(null);
+    const formCardRef = useRef(null);
 
     useEffect(() => {
         fetchEntries();
@@ -69,14 +74,12 @@ function Expenses() {
             .catch((err) => console.error(err));
     };
 
-    // Merged + deduped list of categories
     const allCategories = useMemo(() => {
         const customNames = customCategories.map((c) => c.name);
         const merged = [...DEFAULT_CATEGORIES, ...customNames];
         return [...new Set(merged)].sort((a, b) => a.localeCompare(b));
     }, [customCategories]);
 
-    // Unique merchants from past entries (most recent first)
     const merchantSuggestions = useMemo(() => {
         const seen = new Set();
         const list = [];
@@ -89,7 +92,6 @@ function Expenses() {
         return list;
     }, [entries]);
 
-    // Find first merchant suggestion matching what user is typing
     const merchantSuggestion = useMemo(() => {
         if (!merchant) return "";
         const match = merchantSuggestions.find(
@@ -99,6 +101,18 @@ function Expenses() {
         );
         return match || "";
     }, [merchant, merchantSuggestions]);
+
+    const resetForm = () => {
+        setDate("");
+        setAmount("");
+        setCategory("");
+        setMerchant("");
+        setDescription("");
+        setPaymentMethod("");
+        setShowNewCategoryInput(false);
+        setNewCategoryName("");
+        setEditingId(null);
+    };
 
     const handleCategoryChange = (e) => {
         const value = e.target.value;
@@ -128,7 +142,6 @@ function Expenses() {
     };
 
     const handleDeleteCategory = async (id) => {
-        if (!confirm("Delete this category? Existing expenses using it won't be affected.")) return;
         try {
             await api.delete(`/api/expense-categories/delete/${id}/`);
             setCustomCategories(customCategories.filter((c) => c.id !== id));
@@ -151,23 +164,21 @@ function Expenses() {
             return;
         }
         setLoading(true);
+        const payload = {
+            date,
+            amount,
+            category,
+            merchant,
+            description,
+            payment_method: paymentMethod,
+        };
         try {
-            await api.post("/api/expenses/", {
-                date,
-                amount,
-                category,
-                merchant,
-                description,
-                payment_method: paymentMethod,
-            });
-            setDate("");
-            setAmount("");
-            setCategory("");
-            setMerchant("");
-            setDescription("");
-            setPaymentMethod("");
-            setShowNewCategoryInput(false);
-            setNewCategoryName("");
+            if (editingId) {
+                await api.put(`/api/expenses/${editingId}/`, payload);
+            } else {
+                await api.post("/api/expenses/", payload);
+            }
+            resetForm();
             fetchEntries();
         } catch (err) {
             alert("Failed to save expense entry: " + err);
@@ -176,10 +187,42 @@ function Expenses() {
         }
     };
 
-    const handleDelete = (id) => {
-        api.delete(`/api/expenses/delete/${id}/`)
-            .then(() => fetchEntries())
-            .catch((err) => alert(err));
+    const handleEdit = (entry) => {
+        setEditingId(entry.id);
+        setDate(entry.date);
+        setAmount(entry.amount);
+        setCategory(entry.category);
+        setMerchant(entry.merchant);
+        setDescription(entry.description || "");
+        setPaymentMethod(entry.payment_method);
+        setShowNewCategoryInput(false);
+        setNewCategoryName("");
+        // Scroll the form into view so the user sees the populated fields
+        if (formCardRef.current) {
+            formCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    };
+
+    const handleCancelEdit = () => {
+        resetForm();
+    };
+
+    const requestDelete = (entry) => {
+        setConfirmDelete(entry);
+    };
+
+    const confirmDeleteAction = async () => {
+        if (!confirmDelete) return;
+        try {
+            await api.delete(`/api/expenses/delete/${confirmDelete.id}/`);
+            // If they were editing this same entry, clear the form
+            if (editingId === confirmDelete.id) resetForm();
+            fetchEntries();
+        } catch (err) {
+            alert("Could not delete: " + err);
+        } finally {
+            setConfirmDelete(null);
+        }
     };
 
     return (
@@ -188,8 +231,21 @@ function Expenses() {
             <div className="expenses-content">
                 <h1 className="expenses-title">Expense Tracker</h1>
 
-                <div className="expenses-form-card">
-                    <h2>Add Expense Entry</h2>
+                <div className="expenses-form-card" ref={formCardRef}>
+                    {editingId && (
+                        <div className="editing-banner">
+                            <span>Editing existing entry — make your changes and click Save.</span>
+                            <button
+                                type="button"
+                                className="cancel-edit-btn"
+                                onClick={handleCancelEdit}
+                                style={{ padding: "4px 10px", fontSize: 12 }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    )}
+                    <h2>{editingId ? "Edit Expense Entry" : "Add Expense Entry"}</h2>
                     <form onSubmit={handleSubmit} className="expenses-form">
                         <div className="form-group">
                             <label htmlFor="date">Date</label>
@@ -254,13 +310,7 @@ function Expenses() {
                                         }}
                                         autoFocus
                                     />
-                                    <button
-                                        type="button"
-                                        className="add-cat-btn"
-                                        onClick={handleAddNewCategory}
-                                    >
-                                        Add
-                                    </button>
+                                    <button type="button" className="add-cat-btn" onClick={handleAddNewCategory}>Add</button>
                                     <button
                                         type="button"
                                         className="cancel-cat-btn"
@@ -301,9 +351,7 @@ function Expenses() {
                                 <div className="merchant-ghost" aria-hidden="true">
                                     <span className="ghost-typed">{merchant}</span>
                                     <span className="ghost-suggestion">
-                                        {merchantSuggestion
-                                            ? merchantSuggestion.slice(merchant.length)
-                                            : ""}
+                                        {merchantSuggestion ? merchantSuggestion.slice(merchant.length) : ""}
                                     </span>
                                 </div>
                                 <input
@@ -330,9 +378,21 @@ function Expenses() {
                                 rows="2"
                             />
                         </div>
-                        <button type="submit" className="submit-btn" disabled={loading}>
-                            {loading ? "Saving..." : "Add Entry"}
-                        </button>
+
+                        {editingId ? (
+                            <div className="form-actions">
+                                <button type="submit" className="submit-btn" disabled={loading}>
+                                    {loading ? "Saving..." : "Save Changes"}
+                                </button>
+                                <button type="button" className="cancel-edit-btn" onClick={handleCancelEdit}>
+                                    Cancel
+                                </button>
+                            </div>
+                        ) : (
+                            <button type="submit" className="submit-btn" disabled={loading}>
+                                {loading ? "Saving..." : "Add Entry"}
+                            </button>
+                        )}
                     </form>
                 </div>
 
@@ -350,12 +410,15 @@ function Expenses() {
                                     <th>Merchant</th>
                                     <th>Payment</th>
                                     <th>Description</th>
-                                    <th></th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {entries.map((entry) => (
-                                    <tr key={entry.id}>
+                                    <tr
+                                        key={entry.id}
+                                        className={editingId === entry.id ? "editing-row" : ""}
+                                    >
                                         <td>{entry.date}</td>
                                         <td>${parseFloat(entry.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
                                         <td><span className="category-badge">{entry.category}</span></td>
@@ -363,12 +426,20 @@ function Expenses() {
                                         <td>{entry.payment_method}</td>
                                         <td className="description-cell">{entry.description || "—"}</td>
                                         <td>
-                                            <button
-                                                className="delete-btn"
-                                                onClick={() => handleDelete(entry.id)}
-                                            >
-                                                Delete
-                                            </button>
+                                            <div className="action-buttons">
+                                                <button
+                                                    className="edit-btn"
+                                                    onClick={() => handleEdit(entry)}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    className="delete-btn"
+                                                    onClick={() => requestDelete(entry)}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -384,12 +455,7 @@ function Expenses() {
                     <div className="modal-card" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3>Manage Custom Categories</h3>
-                            <button
-                                className="modal-close"
-                                onClick={() => setShowManageModal(false)}
-                            >
-                                ×
-                            </button>
+                            <button className="modal-close" onClick={() => setShowManageModal(false)}>×</button>
                         </div>
                         <p className="modal-info">
                             Default categories cannot be removed. Only categories you add yourself appear here.
@@ -411,6 +477,42 @@ function Expenses() {
                                 ))}
                             </ul>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Delete confirmation modal */}
+            {confirmDelete && (
+                <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>
+                    <div
+                        className="modal-card confirm-modal-card"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="modal-header">
+                            <h3>Delete this expense?</h3>
+                            <button className="modal-close" onClick={() => setConfirmDelete(null)}>×</button>
+                        </div>
+                        <p className="modal-info">This action cannot be undone.</p>
+                        <div className="confirm-summary">
+                            <div><strong>Date:</strong> {confirmDelete.date}</div>
+                            <div><strong>Amount:</strong> ${parseFloat(confirmDelete.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+                            <div><strong>Merchant:</strong> {confirmDelete.merchant}</div>
+                            <div><strong>Category:</strong> {confirmDelete.category}</div>
+                        </div>
+                        <div className="confirm-actions">
+                            <button
+                                className="confirm-cancel-btn"
+                                onClick={() => setConfirmDelete(null)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="confirm-delete-btn"
+                                onClick={confirmDeleteAction}
+                            >
+                                Delete
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
