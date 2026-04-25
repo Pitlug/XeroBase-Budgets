@@ -1,8 +1,11 @@
 from django.contrib.auth.models import User
 from rest_framework import generics
-from .serializers import UserSerializer, NoteSerializer, IncomeEntrySerializer, ExpenseEntrySerializer, ExpenseCategorySerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .models import Note, IncomeEntry, ExpenseEntry, ExpenseCategory
+from .serializers import (
+    UserSerializer, NoteSerializer, IncomeEntrySerializer,
+    ExpenseEntrySerializer, ExpenseCategorySerializer, ExpenseSubcategorySerializer,
+)
+from .models import Note, IncomeEntry, ExpenseEntry, ExpenseCategory, ExpenseSubcategory
 
 
 class NoteListCreate(generics.ListCreateAPIView):
@@ -88,3 +91,26 @@ class ExpenseCategoryDelete(generics.DestroyAPIView):
 
     def get_queryset(self):
         return ExpenseCategory.objects.filter(user=self.request.user)
+
+
+class ExpenseSubcategoryListCreate(generics.ListCreateAPIView):
+    serializer_class = ExpenseSubcategorySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = ExpenseSubcategory.objects.filter(user=self.request.user)
+        category_filter = self.request.query_params.get("category")
+        if category_filter:
+            qs = qs.filter(category_name=category_filter)
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class ExpenseSubcategoryDelete(generics.DestroyAPIView):
+    serializer_class = ExpenseSubcategorySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return ExpenseSubcategory.objects.filter(user=self.request.user)

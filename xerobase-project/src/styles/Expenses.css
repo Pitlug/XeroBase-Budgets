@@ -5,7 +5,7 @@
 }
 
 .expenses-content {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 32px 20px;
 }
@@ -44,6 +44,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .form-group-full {
@@ -75,6 +76,12 @@
   border-color: #4fc3f7;
 }
 
+.form-group select:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
 .form-group textarea {
   resize: vertical;
   min-height: 60px;
@@ -103,7 +110,7 @@
   cursor: not-allowed;
 }
 
-/* === Form actions row (when editing — Save + Cancel) === */
+/* Form actions row (Save + Cancel when editing) */
 .form-actions {
   grid-column: 1 / -1;
   display: flex;
@@ -131,6 +138,91 @@
 
 .cancel-edit-btn:hover {
   background-color: #ccc;
+}
+
+/* === Recurring toggle row === */
+.toggle-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border: 1px solid #eee;
+  border-radius: 6px;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  border-radius: 24px;
+  transition: 0.2s;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #1a1a2e;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+.toggle-label {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.toggle-frequency-select {
+  margin-left: auto;
+  padding: 7px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  background: white;
+}
+
+/* === Editing-mode banner === */
+.editing-banner {
+  background: #fff8e1;
+  border: 1px solid #ffd54f;
+  border-radius: 4px;
+  padding: 8px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #6d4c00;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 /* === Table === */
@@ -164,6 +256,13 @@
   background-color: #fff8e1;
 }
 
+.category-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
 .category-badge {
   display: inline-block;
   padding: 4px 10px;
@@ -174,13 +273,38 @@
   font-weight: 500;
 }
 
+.subcategory-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.recurring-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.muted {
+  color: #aaa;
+}
+
 .description-cell {
-  max-width: 250px;
+  max-width: 220px;
   font-size: 13px;
   color: #666;
 }
 
-/* === Action buttons in table === */
+/* Action buttons in table */
 .action-buttons {
   display: flex;
   gap: 6px;
@@ -223,21 +347,7 @@
   padding: 20px 0;
 }
 
-/* === Editing-mode banner === */
-.editing-banner {
-  background: #fff8e1;
-  border: 1px solid #ffd54f;
-  border-radius: 4px;
-  padding: 8px 14px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: #6d4c00;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* === Category management === */
+/* === Category & subcategory inline UI === */
 .label-row {
   display: flex;
   justify-content: space-between;
@@ -253,8 +363,13 @@
   padding: 0;
 }
 
-.manage-link:hover {
+.manage-link:hover:not(:disabled) {
   text-decoration: underline;
+}
+
+.manage-link:disabled {
+  color: #bbb;
+  cursor: not-allowed;
 }
 
 .new-category-row {
@@ -264,6 +379,7 @@
 
 .new-category-row input {
   flex: 1;
+  min-width: 0;
 }
 
 .add-cat-btn,
@@ -274,6 +390,7 @@
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .add-cat-btn {
@@ -314,10 +431,7 @@
 
 .merchant-ghost {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   padding: 10px 12px;
   font-size: 14px;
   font-family: inherit;
@@ -346,10 +460,7 @@
 /* === Modals === */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.5);
   display: flex;
   justify-content: center;
@@ -424,7 +535,7 @@
 
 /* === Confirm-delete modal === */
 .confirm-modal-card {
-  max-width: 400px;
+  max-width: 420px;
 }
 
 .confirm-summary {
@@ -480,5 +591,12 @@
 @media (max-width: 768px) {
   .expenses-form {
     grid-template-columns: 1fr;
+  }
+  .toggle-row {
+    flex-wrap: wrap;
+  }
+  .toggle-frequency-select {
+    margin-left: 0;
+    width: 100%;
   }
 }

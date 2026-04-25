@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Note, IncomeEntry, ExpenseEntry, ExpenseCategory
+from .models import Note, IncomeEntry, ExpenseEntry, ExpenseCategory, ExpenseSubcategory
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -31,7 +31,11 @@ class IncomeEntrySerializer(serializers.ModelSerializer):
 class ExpenseEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = ExpenseEntry
-        fields = ["id", "date", "amount", "category", "merchant", "description", "payment_method", "created_at", "user"]
+        fields = [
+            "id", "date", "amount", "category", "subcategory", "merchant",
+            "description", "payment_method", "is_recurring", "recurrence_frequency",
+            "created_at", "user",
+        ]
         extra_kwargs = {"user": {"read_only": True}}
 
 
@@ -42,6 +46,25 @@ class ExpenseCategorySerializer(serializers.ModelSerializer):
         extra_kwargs = {"user": {"read_only": True}}
 
     def validate_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Category name cannot be empty.")
+        return value
+
+
+class ExpenseSubcategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExpenseSubcategory
+        fields = ["id", "category_name", "name", "created_at", "user"]
+        extra_kwargs = {"user": {"read_only": True}}
+
+    def validate_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Subcategory name cannot be empty.")
+        return value
+
+    def validate_category_name(self, value):
         value = value.strip()
         if not value:
             raise serializers.ValidationError("Category name cannot be empty.")
