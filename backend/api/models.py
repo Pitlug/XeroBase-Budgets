@@ -80,3 +80,20 @@ class ExpenseSubcategory(models.Model):
 
     def __str__(self):
         return f"{self.category_name} > {self.name}"
+    
+class BudgetEntry(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="budget_entries")
+    category = models.CharField(max_length=100)
+    subcategory = models.CharField(max_length=100, blank=True, default="")
+    projected_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    # Period stored as "YYYY-MM" — matches the value of an HTML <input type="month">
+    period = models.CharField(max_length=7)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "category", "subcategory", "period")
+        ordering = ["category", "subcategory"]
+
+    def __str__(self):
+        sub = f" > {self.subcategory}" if self.subcategory else ""
+        return f"{self.user.username} | {self.period} | {self.category}{sub} = {self.projected_amount}"

@@ -69,3 +69,47 @@ class ExpenseSubcategorySerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError("Category name cannot be empty.")
         return value
+    
+import re
+from decimal import Decimal
+from django.db.models import Sum
+from .models import BudgetEntry
+
+
+class BudgetEntrySerializer(serializers.ModelSerializer):
+    actual_amount = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BudgetEntry
+        fields = [
+            "id", "category", "subcategory", "projected_amount",
+            "actual_amount", "period", "created_at", "user",
+        ]
+        extra_kwargs = {"user": {"read_only": True}}
+
+    def validate_period(self, value):
+        if not re.match(r"^\d{4}-\d{2}$", value):
+            raise serializers.ValidationError("Period must be in YYYY-MM format.")
+        return value
+
+    def get_actual_amount(self, obj):
+        # Sum ExpenseEntry rows for the same user/category/(subcategory)/month
+        try:
+            year_str, month_str = obj.period.split("-")
+            year, month = int(year_str), int(month_str)
+        except (ValueError, AttributeError):
+            return "0.00"
+
+        qs = ExpenseEntry.objects.filter(
+            user_id=obj.user_id,
+            category=obj.category,
+            date__year=year,
+            date__month=month,
+        )
+        # If a budget row has a subcategory, restrict the sum to that subcategory.
+        # If not, the budget row covers the entire category for the month.
+        if obj.subcategory:
+            qs = qs.filter(subcategory=obj.subcategory)
+
+        total = qs.aggregate(total=Sum("amount"))["total"]
+        return str(total or Decimal("0.00"))

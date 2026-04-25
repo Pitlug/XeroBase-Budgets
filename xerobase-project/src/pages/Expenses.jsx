@@ -2,13 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import api from "../api";
 import "../styles/Expenses.css";
 import Navbar from "../components/Navbar";
-
-const DEFAULT_CATEGORIES = [
-    "Housing", "Utilities", "Groceries", "Transportation", "Insurance",
-    "Healthcare", "Dining Out", "Entertainment", "Subscriptions",
-    "Personal Care", "Clothing", "Education", "Savings", "Debt Payment",
-    "Gifts/Donations", "Travel",
-];
+import { DEFAULT_CATEGORIES } from "../constants";
 
 const PAYMENT_METHODS = [
     "Cash", "Debit Card", "Credit Card", "Bank Transfer", "Check",

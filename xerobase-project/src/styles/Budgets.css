@@ -1,0 +1,471 @@
+/* === Page layout === */
+.budgets-page {
+  min-height: 100vh;
+  background-color: #f0f2f5;
+}
+
+.budgets-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+.budgets-title {
+  font-size: 2rem;
+  color: #1a1a2e;
+  margin-bottom: 28px;
+}
+
+/* === Period picker === */
+.budgets-period-card {
+  background: white;
+  border-radius: 8px;
+  padding: 18px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.budgets-period-card label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+}
+
+.budgets-period-card input[type="month"] {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.period-label {
+  margin-left: auto;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+/* === Summary tiles === */
+.budgets-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.summary-tile {
+  background: white;
+  border-radius: 8px;
+  padding: 22px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-top: 4px solid #1a1a2e;
+}
+
+.summary-tile.remaining-tile.under-budget {
+  border-top-color: #2e7d32;
+}
+
+.summary-tile.remaining-tile.over-budget {
+  border-top-color: #e53935;
+}
+
+.summary-label {
+  font-size: 13px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.summary-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.remaining-tile.over-budget .summary-value {
+  color: #e53935;
+}
+
+.remaining-tile.under-budget .summary-value {
+  color: #2e7d32;
+}
+
+/* === Cards === */
+.budgets-form-card,
+.budgets-list-card {
+  background: white;
+  border-radius: 8px;
+  padding: 28px;
+  margin-bottom: 28px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.budgets-form-card h2,
+.budgets-list-card h2 {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f2f5;
+}
+
+/* === Form === */
+.budgets-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  align-items: end;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  background-color: white;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #4fc3f7;
+}
+
+.form-group select:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.submit-btn {
+  grid-column: 1 / -1;
+  padding: 12px;
+  background-color: #1a1a2e;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.submit-btn:hover {
+  background-color: #2d2d5e;
+}
+
+.submit-btn:disabled {
+  background-color: #999;
+  cursor: not-allowed;
+}
+
+/* === Table === */
+.budgets-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.budgets-table th {
+  text-align: left;
+  padding: 12px;
+  background-color: #f0f2f5;
+  color: #555;
+  font-weight: 600;
+  border-bottom: 2px solid #ddd;
+}
+
+.budgets-table th.num-col,
+.budgets-table td.num-col {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.budgets-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #f0f2f5;
+  color: #333;
+  vertical-align: middle;
+}
+
+.budgets-table tr:hover td {
+  background-color: #fafafa;
+}
+
+.budgets-table tfoot td {
+  background-color: #f0f2f5;
+  border-top: 2px solid #ddd;
+  border-bottom: none;
+  padding: 14px 12px;
+  font-size: 15px;
+}
+
+.totals-label {
+  text-align: right;
+  text-transform: uppercase;
+  font-size: 12px !important;
+  letter-spacing: 0.5px;
+  color: #555;
+  font-weight: 700;
+}
+
+.category-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.subcategory-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.muted {
+  color: #aaa;
+  font-style: italic;
+  font-size: 12px;
+}
+
+.amount-ok {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.amount-over {
+  color: #e53935;
+  font-weight: 600;
+}
+
+/* === Actual cell with progress bar === */
+.actual-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.progress-bar {
+  width: 110px;
+  height: 5px;
+  background-color: #eee;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.progress-fill.ok {
+  background-color: #66bb6a;
+}
+
+.progress-fill.over {
+  background-color: #e53935;
+}
+
+.inline-edit-input {
+  width: 110px;
+  padding: 6px 8px;
+  border: 1px solid #4fc3f7;
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: right;
+  font-family: inherit;
+}
+
+/* === Action buttons === */
+.action-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.edit-btn {
+  background: #1976d2;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+
+.edit-btn:hover {
+  background: #0d47a1;
+}
+
+.delete-btn {
+  background: #e53935;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+
+.delete-btn:hover {
+  background: #b71c1c;
+}
+
+.cancel-edit-btn {
+  background: #e0e0e0;
+  color: #333;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.cancel-edit-btn:hover {
+  background: #ccc;
+}
+
+.no-entries {
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  padding: 20px 0;
+}
+
+/* === Modal (shared with Expenses) === */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+.modal-card {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  width: 90%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+}
+
+.confirm-modal-card { max-width: 420px; }
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #1a1a2e;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: #888;
+  padding: 0 4px;
+}
+
+.modal-close:hover { color: #333; }
+
+.modal-info {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 16px;
+}
+
+.confirm-summary {
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 13px;
+  color: #555;
+  margin: 12px 0 20px;
+}
+
+.confirm-summary div { margin: 3px 0; }
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.confirm-cancel-btn {
+  padding: 9px 18px;
+  background: #e0e0e0;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.confirm-cancel-btn:hover { background: #ccc; }
+
+.confirm-delete-btn {
+  padding: 9px 18px;
+  background: #e53935;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.confirm-delete-btn:hover { background: #b71c1c; }
+
+@media (max-width: 768px) {
+  .budgets-summary { grid-template-columns: 1fr; }
+  .budgets-form { grid-template-columns: 1fr; }
+  .progress-bar { width: 70px; }
+}

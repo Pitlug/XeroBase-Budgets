@@ -114,3 +114,38 @@ class ExpenseSubcategoryDelete(generics.DestroyAPIView):
 
     def get_queryset(self):
         return ExpenseSubcategory.objects.filter(user=self.request.user)
+    
+# At top, add to existing imports:
+from .serializers import (
+    UserSerializer, NoteSerializer, IncomeEntrySerializer,
+    ExpenseEntrySerializer, ExpenseCategorySerializer, ExpenseSubcategorySerializer,
+    BudgetEntrySerializer,
+)
+from .models import (
+    Note, IncomeEntry, ExpenseEntry, ExpenseCategory, ExpenseSubcategory,
+    BudgetEntry,
+)
+
+# At bottom of file, append:
+
+class BudgetEntryListCreate(generics.ListCreateAPIView):
+    serializer_class = BudgetEntrySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = BudgetEntry.objects.filter(user=self.request.user)
+        period = self.request.query_params.get("period")
+        if period:
+            qs = qs.filter(period=period)
+        return qs.order_by("category", "subcategory")
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class BudgetEntryDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = BudgetEntrySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return BudgetEntry.objects.filter(user=self.request.user)
