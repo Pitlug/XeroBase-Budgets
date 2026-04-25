@@ -1,6 +1,12 @@
+import re
+from decimal import Decimal
 from django.contrib.auth.models import User
+from django.db.models import Sum
 from rest_framework import serializers
-from .models import Note, IncomeEntry, ExpenseEntry, ExpenseCategory, ExpenseSubcategory
+from .models import (
+    Note, IncomeEntry, ExpenseEntry, ExpenseCategory,
+    ExpenseSubcategory, BudgetEntry,
+)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -69,11 +75,6 @@ class ExpenseSubcategorySerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError("Category name cannot be empty.")
         return value
-    
-import re
-from decimal import Decimal
-from django.db.models import Sum
-from .models import BudgetEntry
 
 
 class BudgetEntrySerializer(serializers.ModelSerializer):
@@ -93,7 +94,6 @@ class BudgetEntrySerializer(serializers.ModelSerializer):
         return value
 
     def get_actual_amount(self, obj):
-        # Sum ExpenseEntry rows for the same user/category/(subcategory)/month
         try:
             year_str, month_str = obj.period.split("-")
             year, month = int(year_str), int(month_str)
@@ -106,8 +106,6 @@ class BudgetEntrySerializer(serializers.ModelSerializer):
             date__year=year,
             date__month=month,
         )
-        # If a budget row has a subcategory, restrict the sum to that subcategory.
-        # If not, the budget row covers the entire category for the month.
         if obj.subcategory:
             qs = qs.filter(subcategory=obj.subcategory)
 

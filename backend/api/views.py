@@ -4,8 +4,12 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from .serializers import (
     UserSerializer, NoteSerializer, IncomeEntrySerializer,
     ExpenseEntrySerializer, ExpenseCategorySerializer, ExpenseSubcategorySerializer,
+    BudgetEntrySerializer,
 )
-from .models import Note, IncomeEntry, ExpenseEntry, ExpenseCategory, ExpenseSubcategory
+from .models import (
+    Note, IncomeEntry, ExpenseEntry, ExpenseCategory, ExpenseSubcategory,
+    BudgetEntry,
+)
 
 
 class NoteListCreate(generics.ListCreateAPIView):
@@ -41,7 +45,16 @@ class IncomeEntryListCreate(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return IncomeEntry.objects.filter(user=self.request.user).order_by("-date")
+        qs = IncomeEntry.objects.filter(user=self.request.user)
+        period = self.request.query_params.get("period")
+        if period:
+            try:
+                year_str, month_str = period.split("-")
+                year, month = int(year_str), int(month_str)
+                qs = qs.filter(date__year=year, date__month=month)
+            except (ValueError, AttributeError):
+                pass
+        return qs.order_by("-date")
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -55,21 +68,12 @@ class IncomeEntryDelete(generics.DestroyAPIView):
         return IncomeEntry.objects.filter(user=self.request.user)
 
 
-class IncomeEntryListCreate(generics.ListCreateAPIView):
-    serializer_class = IncomeEntrySerializer
+class ExpenseEntryListCreate(generics.ListCreateAPIView):
+    serializer_class = ExpenseEntrySerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = IncomeEntry.objects.filter(user=self.request.user)
-        period = self.request.query_params.get("period")
-        if period:
-            try:
-                year_str, month_str = period.split("-")
-                year, month = int(year_str), int(month_str)
-                qs = qs.filter(date__year=year, date__month=month)
-            except (ValueError, AttributeError):
-                pass
-        return qs.order_by("-date")
+        return ExpenseEntry.objects.filter(user=self.request.user).order_by("-date")
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -123,19 +127,7 @@ class ExpenseSubcategoryDelete(generics.DestroyAPIView):
 
     def get_queryset(self):
         return ExpenseSubcategory.objects.filter(user=self.request.user)
-    
-# At top, add to existing imports:
-from .serializers import (
-    UserSerializer, NoteSerializer, IncomeEntrySerializer,
-    ExpenseEntrySerializer, ExpenseCategorySerializer, ExpenseSubcategorySerializer,
-    BudgetEntrySerializer,
-)
-from .models import (
-    Note, IncomeEntry, ExpenseEntry, ExpenseCategory, ExpenseSubcategory,
-    BudgetEntry,
-)
 
-# At bottom of file, append:
 
 class BudgetEntryListCreate(generics.ListCreateAPIView):
     serializer_class = BudgetEntrySerializer
