@@ -1,8 +1,22 @@
 # XeroBase-Budgets
-This is for the CS coding challnge 2026SP. To create a website for a online budgeting software.
+This is for the CS coding challnge 2026SP. To create a website for a online zero based budgeting software. 
 
 # Idea
 Create a zero base budgeting software so I can access it anywhere. And easily be able to add data and to budget properly.
+
+# Currently Deployed Demo at
+
+https://budget.xerobase.app
+
+# Tech Stack
+
+- React, using javascript
+- Django Backend
+- Postgres SQL Database
+- Gunicorn
+- Nginx
+
+Hosted on my homelab server
 
 How to setup the repo for production:
 
