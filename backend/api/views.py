@@ -55,12 +55,21 @@ class IncomeEntryDelete(generics.DestroyAPIView):
         return IncomeEntry.objects.filter(user=self.request.user)
 
 
-class ExpenseEntryListCreate(generics.ListCreateAPIView):
-    serializer_class = ExpenseEntrySerializer
+class IncomeEntryListCreate(generics.ListCreateAPIView):
+    serializer_class = IncomeEntrySerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return ExpenseEntry.objects.filter(user=self.request.user).order_by("-date")
+        qs = IncomeEntry.objects.filter(user=self.request.user)
+        period = self.request.query_params.get("period")
+        if period:
+            try:
+                year_str, month_str = period.split("-")
+                year, month = int(year_str), int(month_str)
+                qs = qs.filter(date__year=year, date__month=month)
+            except (ValueError, AttributeError):
+                pass
+        return qs.order_by("-date")
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

@@ -22,6 +22,7 @@ const formatMoney = (n) =>
 function Budgets() {
     const [period, setPeriod] = useState(getCurrentPeriod());
     const [budgets, setBudgets] = useState([]);
+    const [monthlyIncome, setMonthlyIncome] = useState(0);
     const [customCategories, setCustomCategories] = useState([]);
     const [customSubcategories, setCustomSubcategories] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -45,11 +46,24 @@ function Budgets() {
 
     useEffect(() => {
         fetchBudgets();
+        fetchMonthlyIncome();
     }, [period]);
 
     const fetchBudgets = () => {
         api.get(`/api/budgets/?period=${period}`)
             .then((res) => setBudgets(res.data))
+            .catch((err) => console.error(err));
+    };
+
+    const fetchMonthlyIncome = () => {
+        api.get(`/api/income/?period=${period}`)
+            .then((res) => {
+                const total = res.data.reduce(
+                    (sum, entry) => sum + parseFloat(entry.amount || 0),
+                    0
+                );
+                setMonthlyIncome(total);
+            })
             .catch((err) => console.error(err));
     };
 
@@ -88,6 +102,10 @@ function Budgets() {
         }
         return { projected, actual, remaining: projected - actual };
     }, [budgets]);
+
+    // Income vs Projected: how much of the user's income is unallocated (positive)
+    // or how much the user has over-allocated against their income (negative)
+    const incomeVsProjected = monthlyIncome - totals.projected;
 
     const handleAddBudget = async (e) => {
         e.preventDefault();
@@ -182,7 +200,30 @@ function Budgets() {
                     <span className="period-label">{formatPeriodLabel(period)}</span>
                 </div>
 
-                {/* Summary */}
+                {/* Income for selected month */}
+                <div className="budgets-income-card">
+                    <div className="income-icon" aria-hidden="true">💰</div>
+                    <div className="income-content">
+                        <div className="income-label">
+                            Income earned in {formatPeriodLabel(period)}
+                        </div>
+                        <div className="income-value">${formatMoney(monthlyIncome)}</div>
+                    </div>
+                    <div className="income-meta">
+                        {monthlyIncome > 0 ? (
+                            <>
+                                <span className="meta-label">From</span>
+                                <span className="meta-value">your income entries</span>
+                            </>
+                        ) : (
+                            <span className="meta-empty">
+                                No income recorded — add entries on the Income page.
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Summary tiles */}
                 <div className="budgets-summary">
                     <div className="summary-tile">
                         <div className="summary-label">Total Projected</div>
@@ -295,9 +336,7 @@ function Budgets() {
                                     const pct = projected > 0 ? Math.min((actual / projected) * 100, 100) : 0;
                                     return (
                                         <tr key={b.id}>
-                                            <td>
-                                                <span className="category-badge">{b.category}</span>
-                                            </td>
+                                            <td><span className="category-badge">{b.category}</span></td>
                                             <td>
                                                 {b.subcategory ? (
                                                     <span className="subcategory-badge">{b.subcategory}</span>
@@ -388,6 +427,28 @@ function Budgets() {
                                     <td className={`num-col ${totals.remaining < 0 ? "amount-over" : "amount-ok"}`}>
                                         <strong>
                                             {totals.remaining < 0 ? "−" : ""}${formatMoney(Math.abs(totals.remaining))}
+                                        </strong>
+                                    </td>
+                                    <td></td>
+                                </tr>
+                                <tr className="footer-income-row">
+                                    <td colSpan="2" className="totals-label">Income earned</td>
+                                    <td className="num-col"><strong>${formatMoney(monthlyIncome)}</strong></td>
+                                    <td className="num-col"></td>
+                                    <td className="num-col"></td>
+                                    <td></td>
+                                </tr>
+                                <tr className="footer-compare-row">
+                                    <td colSpan="2" className="totals-label">
+                                        {incomeVsProjected >= 0
+                                            ? "Available to allocate"
+                                            : "Over-allocated by"}
+                                    </td>
+                                    <td className="num-col"></td>
+                                    <td className="num-col"></td>
+                                    <td className={`num-col ${incomeVsProjected < 0 ? "amount-over" : "amount-ok"}`}>
+                                        <strong>
+                                            {incomeVsProjected < 0 ? "−" : ""}${formatMoney(Math.abs(incomeVsProjected))}
                                         </strong>
                                     </td>
                                     <td></td>
