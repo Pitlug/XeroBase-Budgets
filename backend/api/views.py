@@ -138,7 +138,10 @@ class BudgetEntryListCreate(generics.ListCreateAPIView):
         period = self.request.query_params.get("period")
         if period:
             qs = qs.filter(period=period)
-        return qs.order_by("category", "subcategory")
+        entry_type = self.request.query_params.get("entry_type")
+        if entry_type in ("income", "expense"):
+            qs = qs.filter(entry_type=entry_type)
+        return qs.order_by("entry_type", "category", "subcategory")
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

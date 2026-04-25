@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import api from "../api";
 import "../styles/Budgets.css";
 import Navbar from "../components/Navbar";
-import { DEFAULT_CATEGORIES } from "../constants";
+import { DEFAULT_CATEGORIES, DEFAULT_INCOME_CATEGORIES } from "../constants";
 
 const getCurrentPeriod = () => {
     const d = new Date();
@@ -22,17 +22,22 @@ const formatMoney = (n) =>
 function Budgets() {
     const [period, setPeriod] = useState(getCurrentPeriod());
     const [budgets, setBudgets] = useState([]);
-    const [monthlyIncome, setMonthlyIncome] = useState(0);
-    const [customCategories, setCustomCategories] = useState([]);
+    const [actualMonthlyIncome, setActualMonthlyIncome] = useState(0);
+    const [customExpenseCategories, setCustomExpenseCategories] = useState([]);
     const [customSubcategories, setCustomSubcategories] = useState([]);
-    const [loading, setLoading] = useState(false);
 
-    // Add-row form
-    const [newCategory, setNewCategory] = useState("");
-    const [newSubcategory, setNewSubcategory] = useState("");
-    const [newProjected, setNewProjected] = useState("");
+    // Per-section "add" forms
+    const [loadingIncome, setLoadingIncome] = useState(false);
+    const [newIncomeCategory, setNewIncomeCategory] = useState("");
+    const [newIncomeSubcategory, setNewIncomeSubcategory] = useState("");
+    const [newIncomeProjected, setNewIncomeProjected] = useState("");
 
-    // Inline edit
+    const [loadingExpense, setLoadingExpense] = useState(false);
+    const [newExpenseCategory, setNewExpenseCategory] = useState("");
+    const [newExpenseSubcategory, setNewExpenseSubcategory] = useState("");
+    const [newExpenseProjected, setNewExpenseProjected] = useState("");
+
+    // Inline edit (single global state — only one row edited at a time)
     const [editingId, setEditingId] = useState(null);
     const [editValue, setEditValue] = useState("");
 
@@ -40,7 +45,7 @@ function Budgets() {
     const [confirmDelete, setConfirmDelete] = useState(null);
 
     useEffect(() => {
-        fetchCategories();
+        fetchExpenseCategories();
         fetchSubcategories();
     }, []);
 
@@ -62,14 +67,14 @@ function Budgets() {
                     (sum, entry) => sum + parseFloat(entry.amount || 0),
                     0
                 );
-                setMonthlyIncome(total);
+                setActualMonthlyIncome(total);
             })
             .catch((err) => console.error(err));
     };
 
-    const fetchCategories = () => {
+    const fetchExpenseCategories = () => {
         api.get("/api/expense-categories/")
-            .then((res) => setCustomCategories(res.data))
+            .then((res) => setCustomExpenseCategories(res.data))
             .catch((err) => console.error(err));
     };
 
@@ -79,51 +84,90 @@ function Budgets() {
             .catch((err) => console.error(err));
     };
 
-    const allCategories = useMemo(() => {
-        const customNames = customCategories.map((c) => c.name);
+    // Split budget rows by type for separate tables
+    const incomeBudgets = useMemo(
+        () => budgets.filter((b) => b.entry_type === "income"),
+        [budgets]
+    );
+    const expenseBudgets = useMemo(
+        () => budgets.filter((b) => b.entry_type !== "income"),
+        [budgets]
+    );
+
+    const allExpenseCategories = useMemo(() => {
+        const customNames = customExpenseCategories.map((c) => c.name);
         return [...new Set([...DEFAULT_CATEGORIES, ...customNames])].sort((a, b) =>
             a.localeCompare(b)
         );
-    }, [customCategories]);
+    }, [customExpenseCategories]);
 
-    const subcategoriesForNew = useMemo(() => {
-        if (!newCategory) return [];
+    // Income categories: defaults + ones the user has previously used in income
+    // budgets (since income categories aren't stored as a separate model).
+    const allIncomeCategories = useMemo(() => {
+        const usedNames = incomeBudgets.map((b) => b.category);
+        return [...new Set([...DEFAULT_INCOME_CATEGORIES, ...usedNames])].sort(
+            (a, b) => a.localeCompare(b)
+        );
+    }, [incomeBudgets]);
+
+    const subcategoriesForExpense = useMemo(() => {
+        if (!newExpenseCategory) return [];
         return customSubcategories
-            .filter((s) => s.category_name === newCategory)
+            .filter((s) => s.category_name === newExpenseCategory)
             .map((s) => s.name)
             .sort((a, b) => a.localeCompare(b));
-    }, [newCategory, customSubcategories]);
+    }, [newExpenseCategory, customSubcategories]);
 
-    const totals = useMemo(() => {
+    // Totals
+    const incomeTotals = useMemo(() => {
         let projected = 0, actual = 0;
-        for (const b of budgets) {
+        for (const b of incomeBudgets) {
             projected += parseFloat(b.projected_amount || 0);
             actual += parseFloat(b.actual_amount || 0);
         }
-        return { projected, actual, remaining: projected - actual };
-    }, [budgets]);
+        return { projected, actual };
+    }, [incomeBudgets]);
 
-    // Income vs Projected: how much of the user's income is unallocated (positive)
-    // or how much the user has over-allocated against their income (negative)
-    const incomeVsProjected = monthlyIncome - totals.projected;
+    const expenseTotals = useMemo(() => {
+        let projected = 0, actual = 0;
+        for (const b of expenseBudgets) {
+            projected += parseFloat(b.projected_amount || 0);
+            actual += parseFloat(b.actual_amount || 0);
+        }
+        return { projected, actual };
+    }, [expenseBudgets]);
 
-    const handleAddBudget = async (e) => {
-        e.preventDefault();
-        if (!newCategory || !newProjected) {
+    // Zero-based reconciliation (projected income − projected expenses)
+    const projectedNet = incomeTotals.projected - expenseTotals.projected;
+    const actualNet = incomeTotals.actual - expenseTotals.actual;
+
+    const handleAddBudget = async (entry_type) => {
+        const isIncome = entry_type === "income";
+        const cat = isIncome ? newIncomeCategory : newExpenseCategory;
+        const sub = isIncome ? newIncomeSubcategory : newExpenseSubcategory;
+        const projected = isIncome ? newIncomeProjected : newExpenseProjected;
+        if (!cat || !projected) {
             alert("Please pick a category and enter a projected amount.");
             return;
         }
-        setLoading(true);
+        if (isIncome) setLoadingIncome(true); else setLoadingExpense(true);
         try {
             await api.post("/api/budgets/", {
-                category: newCategory,
-                subcategory: newSubcategory,
-                projected_amount: newProjected,
+                entry_type,
+                category: cat,
+                subcategory: sub,
+                projected_amount: projected,
                 period,
             });
-            setNewCategory("");
-            setNewSubcategory("");
-            setNewProjected("");
+            if (isIncome) {
+                setNewIncomeCategory("");
+                setNewIncomeSubcategory("");
+                setNewIncomeProjected("");
+            } else {
+                setNewExpenseCategory("");
+                setNewExpenseSubcategory("");
+                setNewExpenseProjected("");
+            }
             fetchBudgets();
         } catch (err) {
             const data = err?.response?.data;
@@ -131,10 +175,10 @@ function Budgets() {
                 data?.non_field_errors?.[0] ||
                 data?.detail ||
                 data?.period?.[0] ||
-                "Could not add budget. A budget for this category/subcategory may already exist for this period.";
+                "Could not add row. A budget for this category may already exist for this period.";
             alert(msg);
         } finally {
-            setLoading(false);
+            if (isIncome) setLoadingIncome(false); else setLoadingExpense(false);
         }
     };
 
@@ -155,6 +199,7 @@ function Budgets() {
         }
         try {
             await api.put(`/api/budgets/${budget.id}/`, {
+                entry_type: budget.entry_type,
                 category: budget.category,
                 subcategory: budget.subcategory,
                 projected_amount: editValue,
@@ -182,11 +227,95 @@ function Budgets() {
         }
     };
 
+    const renderRow = (b, isIncome) => {
+        const projected = parseFloat(b.projected_amount || 0);
+        const actual = parseFloat(b.actual_amount || 0);
+        // For expenses: remaining = projected − actual (positive = under)
+        // For income:   remaining = actual − projected (positive = above target)
+        const remaining = isIncome ? actual - projected : projected - actual;
+        const isOver = remaining < 0;
+        const pct = projected > 0 ? Math.min((actual / projected) * 100, 100) : 0;
+        return (
+            <tr key={b.id}>
+                <td>
+                    <span className={isIncome ? "income-badge" : "category-badge"}>
+                        {b.category}
+                    </span>
+                </td>
+                <td>
+                    {b.subcategory ? (
+                        <span className="subcategory-badge">{b.subcategory}</span>
+                    ) : (
+                        <span className="muted">
+                            {isIncome ? "any source" : "whole category"}
+                        </span>
+                    )}
+                </td>
+                <td className="num-col">
+                    {editingId === b.id ? (
+                        <input
+                            type="number"
+                            className="inline-edit-input"
+                            step="0.01"
+                            min="0"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") saveEdit(b);
+                                if (e.key === "Escape") cancelEdit();
+                            }}
+                            autoFocus
+                        />
+                    ) : (
+                        <span>${formatMoney(projected)}</span>
+                    )}
+                </td>
+                <td className="num-col">
+                    <div className="actual-cell">
+                        <span className={isOver ? "amount-over" : "amount-ok"}>
+                            ${formatMoney(actual)}
+                        </span>
+                        <div className="progress-bar">
+                            <div
+                                className={`progress-fill ${isOver ? "over" : "ok"}`}
+                                style={{ width: `${pct}%` }}
+                            />
+                        </div>
+                    </div>
+                </td>
+                <td className={`num-col ${isOver ? "amount-over" : "amount-ok"}`}>
+                    {isOver ? "−" : ""}${formatMoney(Math.abs(remaining))}
+                </td>
+                <td>
+                    <div className="action-buttons">
+                        {editingId === b.id ? (
+                            <>
+                                <button className="edit-btn" onClick={() => saveEdit(b)}>Save</button>
+                                <button
+                                    className="cancel-edit-btn"
+                                    onClick={cancelEdit}
+                                    style={{ padding: "5px 12px", fontSize: 12 }}
+                                >
+                                    Cancel
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button className="edit-btn" onClick={() => startEdit(b)}>Edit</button>
+                                <button className="delete-btn" onClick={() => requestDelete(b)}>Delete</button>
+                            </>
+                        )}
+                    </div>
+                </td>
+            </tr>
+        );
+    };
+
     return (
         <div className="budgets-page">
             <Navbar />
             <div className="budgets-content">
-                <h1 className="budgets-title">Budget Tracker</h1>
+                <h1 className="budgets-title">Zero-Based Budget</h1>
 
                 {/* Period selector */}
                 <div className="budgets-period-card">
@@ -200,121 +329,218 @@ function Budgets() {
                     <span className="period-label">{formatPeriodLabel(period)}</span>
                 </div>
 
-                {/* Income for selected month */}
-                <div className="budgets-income-card">
-                    <div className="income-icon" aria-hidden="true">💰</div>
-                    <div className="income-content">
-                        <div className="income-label">
-                            Income earned in {formatPeriodLabel(period)}
-                        </div>
-                        <div className="income-value">${formatMoney(monthlyIncome)}</div>
-                    </div>
-                    <div className="income-meta">
-                        {monthlyIncome > 0 ? (
-                            <>
-                                <span className="meta-label">From</span>
-                                <span className="meta-value">your income entries</span>
-                            </>
-                        ) : (
-                            <span className="meta-empty">
-                                No income recorded — add entries on the Income page.
-                            </span>
-                        )}
-                    </div>
-                </div>
-
-                {/* Summary tiles */}
+                {/* Zero-based reconciliation */}
                 <div className="budgets-summary">
-                    <div className="summary-tile">
-                        <div className="summary-label">Total Projected</div>
-                        <div className="summary-value">${formatMoney(totals.projected)}</div>
+                    <div className="summary-tile income-tile">
+                        <div className="summary-label">Projected Income</div>
+                        <div className="summary-value">+${formatMoney(incomeTotals.projected)}</div>
+                        <div className="summary-sub">Actual: ${formatMoney(incomeTotals.actual)}</div>
                     </div>
-                    <div className="summary-tile">
-                        <div className="summary-label">Total Actual</div>
-                        <div className="summary-value">${formatMoney(totals.actual)}</div>
+                    <div className="summary-tile expense-tile">
+                        <div className="summary-label">Projected Expenses</div>
+                        <div className="summary-value">−${formatMoney(expenseTotals.projected)}</div>
+                        <div className="summary-sub">Actual: ${formatMoney(expenseTotals.actual)}</div>
                     </div>
                     <div
                         className={`summary-tile remaining-tile ${
-                            totals.remaining < 0 ? "over-budget" : "under-budget"
+                            Math.abs(projectedNet) < 0.005
+                                ? "balanced-budget"
+                                : projectedNet > 0
+                                    ? "under-budget"
+                                    : "over-budget"
                         }`}
                     >
                         <div className="summary-label">
-                            {totals.remaining < 0 ? "Over Budget" : "Remaining"}
+                            {Math.abs(projectedNet) < 0.005
+                                ? "Balanced ✓"
+                                : projectedNet > 0
+                                    ? "Unallocated"
+                                    : "Over-allocated"}
                         </div>
                         <div className="summary-value">
-                            ${formatMoney(Math.abs(totals.remaining))}
+                            {projectedNet < 0 ? "−" : ""}${formatMoney(Math.abs(projectedNet))}
+                        </div>
+                        <div className="summary-sub">
+                            Actual net: {actualNet < 0 ? "−" : ""}${formatMoney(Math.abs(actualNet))}
                         </div>
                     </div>
                 </div>
 
-                {/* Add new budget row */}
-                <div className="budgets-form-card">
-                    <h2>Add Budget Row</h2>
-                    <form onSubmit={handleAddBudget} className="budgets-form">
+                {/* Helpful banner about zero-based goal */}
+                <div className="zero-based-tip">
+                    <strong>Zero-based budgeting goal:</strong> projected income minus projected
+                    expenses should equal $0.00 — every dollar earned has a job.
+                </div>
+
+                {/* === INCOME SECTION === */}
+                <div className="budgets-form-card income-section">
+                    <h2>Add Projected Income</h2>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            handleAddBudget("income");
+                        }}
+                        className="budgets-form"
+                    >
                         <div className="form-group">
-                            <label htmlFor="newCategory">Category</label>
+                            <label htmlFor="newIncomeCategory">Income Source</label>
                             <select
-                                id="newCategory"
-                                value={newCategory}
+                                id="newIncomeCategory"
+                                value={newIncomeCategory}
                                 onChange={(e) => {
-                                    setNewCategory(e.target.value);
-                                    setNewSubcategory("");
+                                    setNewIncomeCategory(e.target.value);
+                                    setNewIncomeSubcategory("");
                                 }}
                                 required
                             >
-                                <option value="" disabled>Select a category</option>
-                                {allCategories.map((c) => (
+                                <option value="" disabled>Select an income source</option>
+                                {allIncomeCategories.map((c) => (
                                     <option key={c} value={c}>{c}</option>
                                 ))}
                             </select>
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="newSubcategory">Subcategory (optional)</label>
+                            <label htmlFor="newIncomeSubcategory">
+                                Earned By (optional)
+                            </label>
+                            <input
+                                type="text"
+                                id="newIncomeSubcategory"
+                                placeholder="Person earning, e.g. John"
+                                value={newIncomeSubcategory}
+                                onChange={(e) => setNewIncomeSubcategory(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="newIncomeProjected">Projected Amount ($)</label>
+                            <input
+                                type="number"
+                                id="newIncomeProjected"
+                                placeholder="0.00"
+                                step="0.01"
+                                min="0"
+                                value={newIncomeProjected}
+                                onChange={(e) => setNewIncomeProjected(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <button type="submit" className="submit-btn income-submit-btn" disabled={loadingIncome}>
+                            {loadingIncome ? "Saving..." : "Add Income Row"}
+                        </button>
+                    </form>
+                </div>
+
+                <div className="budgets-list-card income-section">
+                    <h2>Income Budget — {formatPeriodLabel(period)}</h2>
+                    {incomeBudgets.length === 0 ? (
+                        <p className="no-entries">No income projected yet. Add one above.</p>
+                    ) : (
+                        <table className="budgets-table">
+                            <thead>
+                                <tr>
+                                    <th>Source</th>
+                                    <th>Earned By</th>
+                                    <th className="num-col">Projected</th>
+                                    <th className="num-col">Actual</th>
+                                    <th className="num-col">Variance</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>{incomeBudgets.map((b) => renderRow(b, true))}</tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colSpan="2" className="totals-label">Income totals</td>
+                                    <td className="num-col"><strong>+${formatMoney(incomeTotals.projected)}</strong></td>
+                                    <td className="num-col"><strong>+${formatMoney(incomeTotals.actual)}</strong></td>
+                                    <td className="num-col"></td>
+                                    <td></td>
+                                </tr>
+                                <tr className="footer-income-row">
+                                    <td colSpan="2" className="totals-label">Actual income from Income page</td>
+                                    <td className="num-col"></td>
+                                    <td className="num-col"><strong>${formatMoney(actualMonthlyIncome)}</strong></td>
+                                    <td className="num-col"></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    )}
+                </div>
+
+                {/* === EXPENSE SECTION === */}
+                <div className="budgets-form-card expense-section">
+                    <h2>Add Projected Expense</h2>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            handleAddBudget("expense");
+                        }}
+                        className="budgets-form"
+                    >
+                        <div className="form-group">
+                            <label htmlFor="newExpenseCategory">Category</label>
                             <select
-                                id="newSubcategory"
-                                value={newSubcategory}
-                                onChange={(e) => setNewSubcategory(e.target.value)}
-                                disabled={!newCategory}
+                                id="newExpenseCategory"
+                                value={newExpenseCategory}
+                                onChange={(e) => {
+                                    setNewExpenseCategory(e.target.value);
+                                    setNewExpenseSubcategory("");
+                                }}
+                                required
+                            >
+                                <option value="" disabled>Select a category</option>
+                                {allExpenseCategories.map((c) => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="newExpenseSubcategory">Subcategory (optional)</label>
+                            <select
+                                id="newExpenseSubcategory"
+                                value={newExpenseSubcategory}
+                                onChange={(e) => setNewExpenseSubcategory(e.target.value)}
+                                disabled={!newExpenseCategory}
                             >
                                 <option value="">
-                                    {newCategory
+                                    {newExpenseCategory
                                         ? "(none — entire category)"
                                         : "Pick a category first"}
                                 </option>
-                                {subcategoriesForNew.map((sub) => (
+                                {subcategoriesForExpense.map((sub) => (
                                     <option key={sub} value={sub}>{sub}</option>
                                 ))}
                             </select>
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="newProjected">Projected Amount ($)</label>
+                            <label htmlFor="newExpenseProjected">Projected Amount ($)</label>
                             <input
                                 type="number"
-                                id="newProjected"
+                                id="newExpenseProjected"
                                 placeholder="0.00"
                                 step="0.01"
                                 min="0"
-                                value={newProjected}
-                                onChange={(e) => setNewProjected(e.target.value)}
+                                value={newExpenseProjected}
+                                onChange={(e) => setNewExpenseProjected(e.target.value)}
                                 required
                             />
                         </div>
 
-                        <button type="submit" className="submit-btn" disabled={loading}>
-                            {loading ? "Saving..." : "Add Budget"}
+                        <button type="submit" className="submit-btn" disabled={loadingExpense}>
+                            {loadingExpense ? "Saving..." : "Add Expense Row"}
                         </button>
                     </form>
                 </div>
 
-                {/* Main table */}
-                <div className="budgets-list-card">
-                    <h2>Budget Allocations — {formatPeriodLabel(period)}</h2>
-                    {budgets.length === 0 ? (
-                        <p className="no-entries">
-                            No budgets set for this period yet. Add one above to get started.
-                        </p>
+                <div className="budgets-list-card expense-section">
+                    <h2>Expense Budget — {formatPeriodLabel(period)}</h2>
+                    {expenseBudgets.length === 0 ? (
+                        <p className="no-entries">No expenses budgeted yet. Add one above.</p>
                     ) : (
                         <table className="budgets-table">
                             <thead>
@@ -327,128 +553,16 @@ function Budgets() {
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {budgets.map((b) => {
-                                    const projected = parseFloat(b.projected_amount || 0);
-                                    const actual = parseFloat(b.actual_amount || 0);
-                                    const remaining = projected - actual;
-                                    const isOver = remaining < 0;
-                                    const pct = projected > 0 ? Math.min((actual / projected) * 100, 100) : 0;
-                                    return (
-                                        <tr key={b.id}>
-                                            <td><span className="category-badge">{b.category}</span></td>
-                                            <td>
-                                                {b.subcategory ? (
-                                                    <span className="subcategory-badge">{b.subcategory}</span>
-                                                ) : (
-                                                    <span className="muted">whole category</span>
-                                                )}
-                                            </td>
-                                            <td className="num-col">
-                                                {editingId === b.id ? (
-                                                    <input
-                                                        type="number"
-                                                        className="inline-edit-input"
-                                                        step="0.01"
-                                                        min="0"
-                                                        value={editValue}
-                                                        onChange={(e) => setEditValue(e.target.value)}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === "Enter") saveEdit(b);
-                                                            if (e.key === "Escape") cancelEdit();
-                                                        }}
-                                                        autoFocus
-                                                    />
-                                                ) : (
-                                                    <span>${formatMoney(projected)}</span>
-                                                )}
-                                            </td>
-                                            <td className="num-col">
-                                                <div className="actual-cell">
-                                                    <span className={isOver ? "amount-over" : "amount-ok"}>
-                                                        ${formatMoney(actual)}
-                                                    </span>
-                                                    <div className="progress-bar">
-                                                        <div
-                                                            className={`progress-fill ${isOver ? "over" : "ok"}`}
-                                                            style={{ width: `${pct}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className={`num-col ${isOver ? "amount-over" : "amount-ok"}`}>
-                                                {isOver ? "−" : ""}${formatMoney(Math.abs(remaining))}
-                                            </td>
-                                            <td>
-                                                <div className="action-buttons">
-                                                    {editingId === b.id ? (
-                                                        <>
-                                                            <button
-                                                                className="edit-btn"
-                                                                onClick={() => saveEdit(b)}
-                                                            >
-                                                                Save
-                                                            </button>
-                                                            <button
-                                                                className="cancel-edit-btn"
-                                                                onClick={cancelEdit}
-                                                                style={{ padding: "5px 12px", fontSize: 12 }}
-                                                            >
-                                                                Cancel
-                                                            </button>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <button
-                                                                className="edit-btn"
-                                                                onClick={() => startEdit(b)}
-                                                            >
-                                                                Edit
-                                                            </button>
-                                                            <button
-                                                                className="delete-btn"
-                                                                onClick={() => requestDelete(b)}
-                                                            >
-                                                                Delete
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
+                            <tbody>{expenseBudgets.map((b) => renderRow(b, false))}</tbody>
                             <tfoot>
                                 <tr>
-                                    <td colSpan="2" className="totals-label">Totals</td>
-                                    <td className="num-col"><strong>${formatMoney(totals.projected)}</strong></td>
-                                    <td className="num-col"><strong>${formatMoney(totals.actual)}</strong></td>
-                                    <td className={`num-col ${totals.remaining < 0 ? "amount-over" : "amount-ok"}`}>
+                                    <td colSpan="2" className="totals-label">Expense totals</td>
+                                    <td className="num-col"><strong>−${formatMoney(expenseTotals.projected)}</strong></td>
+                                    <td className="num-col"><strong>−${formatMoney(expenseTotals.actual)}</strong></td>
+                                    <td className={`num-col ${expenseTotals.projected - expenseTotals.actual < 0 ? "amount-over" : "amount-ok"}`}>
                                         <strong>
-                                            {totals.remaining < 0 ? "−" : ""}${formatMoney(Math.abs(totals.remaining))}
-                                        </strong>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                                <tr className="footer-income-row">
-                                    <td colSpan="2" className="totals-label">Income earned</td>
-                                    <td className="num-col"><strong>${formatMoney(monthlyIncome)}</strong></td>
-                                    <td className="num-col"></td>
-                                    <td className="num-col"></td>
-                                    <td></td>
-                                </tr>
-                                <tr className="footer-compare-row">
-                                    <td colSpan="2" className="totals-label">
-                                        {incomeVsProjected >= 0
-                                            ? "Available to allocate"
-                                            : "Over-allocated by"}
-                                    </td>
-                                    <td className="num-col"></td>
-                                    <td className="num-col"></td>
-                                    <td className={`num-col ${incomeVsProjected < 0 ? "amount-over" : "amount-ok"}`}>
-                                        <strong>
-                                            {incomeVsProjected < 0 ? "−" : ""}${formatMoney(Math.abs(incomeVsProjected))}
+                                            {expenseTotals.projected - expenseTotals.actual < 0 ? "−" : ""}
+                                            ${formatMoney(Math.abs(expenseTotals.projected - expenseTotals.actual))}
                                         </strong>
                                     </td>
                                     <td></td>
@@ -456,6 +570,37 @@ function Budgets() {
                             </tfoot>
                         </table>
                     )}
+                </div>
+
+                {/* Final reconciliation */}
+                <div className="reconciliation-card">
+                    <h2>Zero-Based Reconciliation</h2>
+                    <div className="reconciliation-row">
+                        <span>Projected income</span>
+                        <span className="amount-ok">+${formatMoney(incomeTotals.projected)}</span>
+                    </div>
+                    <div className="reconciliation-row">
+                        <span>Projected expenses</span>
+                        <span className="amount-over">−${formatMoney(expenseTotals.projected)}</span>
+                    </div>
+                    <div className={`reconciliation-row reconciliation-net ${
+                        Math.abs(projectedNet) < 0.005
+                            ? "net-balanced"
+                            : projectedNet > 0
+                                ? "net-positive"
+                                : "net-negative"
+                    }`}>
+                        <span>
+                            {Math.abs(projectedNet) < 0.005
+                                ? "✓ Budget balances"
+                                : projectedNet > 0
+                                    ? "Unallocated income"
+                                    : "Over-allocated"}
+                        </span>
+                        <span>
+                            {projectedNet < 0 ? "−" : ""}${formatMoney(Math.abs(projectedNet))}
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -470,25 +615,20 @@ function Budgets() {
                             <h3>Delete this budget row?</h3>
                             <button className="modal-close" onClick={() => setConfirmDelete(null)}>×</button>
                         </div>
-                        <p className="modal-info">This will not affect any of your existing expense entries.</p>
+                        <p className="modal-info">This will not affect existing income or expense entries.</p>
                         <div className="confirm-summary">
-                            <div><strong>Category:</strong> {confirmDelete.category}{confirmDelete.subcategory && ` › ${confirmDelete.subcategory}`}</div>
+                            <div><strong>Type:</strong> {confirmDelete.entry_type === "income" ? "Income" : "Expense"}</div>
+                            <div>
+                                <strong>{confirmDelete.entry_type === "income" ? "Source" : "Category"}:</strong>{" "}
+                                {confirmDelete.category}
+                                {confirmDelete.subcategory && ` › ${confirmDelete.subcategory}`}
+                            </div>
                             <div><strong>Projected:</strong> ${formatMoney(confirmDelete.projected_amount)}</div>
                             <div><strong>Period:</strong> {formatPeriodLabel(confirmDelete.period)}</div>
                         </div>
                         <div className="confirm-actions">
-                            <button
-                                className="confirm-cancel-btn"
-                                onClick={() => setConfirmDelete(null)}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className="confirm-delete-btn"
-                                onClick={confirmDeleteAction}
-                            >
-                                Delete
-                            </button>
+                            <button className="confirm-cancel-btn" onClick={() => setConfirmDelete(null)}>Cancel</button>
+                            <button className="confirm-delete-btn" onClick={confirmDeleteAction}>Delete</button>
                         </div>
                     </div>
                 </div>

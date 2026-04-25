@@ -82,7 +82,13 @@ class ExpenseSubcategory(models.Model):
         return f"{self.category_name} > {self.name}"
     
 class BudgetEntry(models.Model):
+    ENTRY_TYPE_CHOICES = [
+        ("expense", "Expense"),
+        ("income", "Income"),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="budget_entries")
+    entry_type = models.CharField(max_length=10, choices=ENTRY_TYPE_CHOICES, default="expense")
     category = models.CharField(max_length=100)
     subcategory = models.CharField(max_length=100, blank=True, default="")
     projected_amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -91,9 +97,10 @@ class BudgetEntry(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("user", "category", "subcategory", "period")
-        ordering = ["category", "subcategory"]
+        # Same name can exist in both income and expense — entry_type is part of the key
+        unique_together = ("user", "entry_type", "category", "subcategory", "period")
+        ordering = ["entry_type", "category", "subcategory"]
 
     def __str__(self):
         sub = f" > {self.subcategory}" if self.subcategory else ""
-        return f"{self.user.username} | {self.period} | {self.category}{sub} = {self.projected_amount}"
+        return f"{self.user.username} | {self.period} | [{self.entry_type}] {self.category}{sub} = {self.projected_amount}"

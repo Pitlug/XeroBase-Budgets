@@ -567,3 +567,131 @@
     width: 100%;
   }
 }
+
+/* === Zero-based summary tile variants === */
+.summary-tile.income-tile {
+  border-top-color: #2e7d32;
+}
+
+.summary-tile.income-tile .summary-value {
+  color: #2e7d32;
+}
+
+.summary-tile.expense-tile {
+  border-top-color: #c62828;
+}
+
+.summary-tile.expense-tile .summary-value {
+  color: #c62828;
+}
+
+.summary-tile.remaining-tile.balanced-budget {
+  border-top-color: #1565c0;
+}
+
+.summary-tile.remaining-tile.balanced-budget .summary-value {
+  color: #1565c0;
+}
+
+.summary-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #777;
+  font-weight: 500;
+}
+
+/* === Zero-based tip banner === */
+.zero-based-tip {
+  background: #fff8e1;
+  border: 1px solid #ffd54f;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  font-size: 13px;
+  color: #6d4c00;
+}
+
+/* === Section accent stripes === */
+.budgets-form-card.income-section,
+.budgets-list-card.income-section {
+  border-left: 4px solid #2e7d32;
+}
+
+.budgets-form-card.expense-section,
+.budgets-list-card.expense-section {
+  border-left: 4px solid #c62828;
+}
+
+/* Green submit for income forms */
+.submit-btn.income-submit-btn {
+  background-color: #2e7d32;
+}
+
+.submit-btn.income-submit-btn:hover {
+  background-color: #1b5e20;
+}
+
+/* Income source badge — green so it visually differs from expense category */
+.income-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* === Reconciliation card === */
+.reconciliation-card {
+  background: white;
+  border-radius: 8px;
+  padding: 24px 28px;
+  margin-bottom: 28px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-left: 4px solid #1565c0;
+}
+
+.reconciliation-card h2 {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f2f5;
+}
+
+.reconciliation-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  font-size: 15px;
+  color: #444;
+  border-bottom: 1px dashed #eee;
+  font-variant-numeric: tabular-nums;
+}
+
+.reconciliation-row:last-child {
+  border-bottom: none;
+}
+
+.reconciliation-net {
+  font-weight: 700;
+  font-size: 1.15rem;
+  padding-top: 14px;
+  margin-top: 6px;
+  border-top: 2px solid #ddd;
+  border-bottom: none !important;
+}
+
+.reconciliation-net.net-balanced {
+  color: #1565c0;
+}
+
+.reconciliation-net.net-positive {
+  color: #f57c00;
+}
+
+.reconciliation-net.net-negative {
+  color: #c62828;
+}
