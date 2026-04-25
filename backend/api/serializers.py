@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Note, IncomeEntry, ExpenseEntry
+from .models import Note, IncomeEntry, ExpenseEntry, ExpenseCategory
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -33,3 +33,16 @@ class ExpenseEntrySerializer(serializers.ModelSerializer):
         model = ExpenseEntry
         fields = ["id", "date", "amount", "category", "merchant", "description", "payment_method", "created_at", "user"]
         extra_kwargs = {"user": {"read_only": True}}
+
+
+class ExpenseCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExpenseCategory
+        fields = ["id", "name", "created_at", "user"]
+        extra_kwargs = {"user": {"read_only": True}}
+
+    def validate_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Category name cannot be empty.")
+        return value

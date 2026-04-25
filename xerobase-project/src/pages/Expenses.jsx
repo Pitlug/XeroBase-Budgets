@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import api from "../api";
 import "../styles/Expenses.css";
 import Navbar from "../components/Navbar";
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
     "Housing",
     "Utilities",
     "Groceries",
@@ -20,7 +20,6 @@ const CATEGORIES = [
     "Debt Payment",
     "Gifts/Donations",
     "Travel",
-    "Other",
 ];
 
 const PAYMENT_METHODS = [
@@ -35,6 +34,7 @@ const PAYMENT_METHODS = [
 
 function Expenses() {
     const [entries, setEntries] = useState([]);
+    const [customCategories, setCustomCategories] = useState([]);
     const [date, setDate] = useState("");
     const [amount, setAmount] = useState("");
     const [category, setCategory] = useState("");
@@ -43,8 +43,18 @@ function Expenses() {
     const [paymentMethod, setPaymentMethod] = useState("");
     const [loading, setLoading] = useState(false);
 
+    // For "Other" -> add new category inline
+    const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState("");
+
+    // For "Manage Categories" modal
+    const [showManageModal, setShowManageModal] = useState(false);
+
+    const merchantInputRef = useRef(null);
+
     useEffect(() => {
         fetchEntries();
+        fetchCategories();
     }, []);
 
     const fetchEntries = () => {
@@ -53,8 +63,93 @@ function Expenses() {
             .catch((err) => console.error(err));
     };
 
+    const fetchCategories = () => {
+        api.get("/api/expense-categories/")
+            .then((res) => setCustomCategories(res.data))
+            .catch((err) => console.error(err));
+    };
+
+    // Merged + deduped list of categories
+    const allCategories = useMemo(() => {
+        const customNames = customCategories.map((c) => c.name);
+        const merged = [...DEFAULT_CATEGORIES, ...customNames];
+        return [...new Set(merged)].sort((a, b) => a.localeCompare(b));
+    }, [customCategories]);
+
+    // Unique merchants from past entries (most recent first)
+    const merchantSuggestions = useMemo(() => {
+        const seen = new Set();
+        const list = [];
+        for (const entry of entries) {
+            if (entry.merchant && !seen.has(entry.merchant.toLowerCase())) {
+                seen.add(entry.merchant.toLowerCase());
+                list.push(entry.merchant);
+            }
+        }
+        return list;
+    }, [entries]);
+
+    // Find first merchant suggestion matching what user is typing
+    const merchantSuggestion = useMemo(() => {
+        if (!merchant) return "";
+        const match = merchantSuggestions.find(
+            (m) =>
+                m.toLowerCase().startsWith(merchant.toLowerCase()) &&
+                m.toLowerCase() !== merchant.toLowerCase()
+        );
+        return match || "";
+    }, [merchant, merchantSuggestions]);
+
+    const handleCategoryChange = (e) => {
+        const value = e.target.value;
+        if (value === "__OTHER__") {
+            setShowNewCategoryInput(true);
+            setCategory("");
+        } else {
+            setShowNewCategoryInput(false);
+            setNewCategoryName("");
+            setCategory(value);
+        }
+    };
+
+    const handleAddNewCategory = async () => {
+        const name = newCategoryName.trim();
+        if (!name) return;
+        try {
+            const res = await api.post("/api/expense-categories/", { name });
+            setCustomCategories([...customCategories, res.data]);
+            setCategory(res.data.name);
+            setNewCategoryName("");
+            setShowNewCategoryInput(false);
+        } catch (err) {
+            const msg = err?.response?.data?.name?.[0] || err?.response?.data?.detail || "Could not add category.";
+            alert(msg);
+        }
+    };
+
+    const handleDeleteCategory = async (id) => {
+        if (!confirm("Delete this category? Existing expenses using it won't be affected.")) return;
+        try {
+            await api.delete(`/api/expense-categories/delete/${id}/`);
+            setCustomCategories(customCategories.filter((c) => c.id !== id));
+        } catch (err) {
+            alert("Could not delete category: " + err);
+        }
+    };
+
+    const handleMerchantKeyDown = (e) => {
+        if (e.key === "Tab" && merchantSuggestion) {
+            e.preventDefault();
+            setMerchant(merchantSuggestion);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!category) {
+            alert("Please select or add a category.");
+            return;
+        }
         setLoading(true);
         try {
             await api.post("/api/expenses/", {
@@ -71,6 +166,8 @@ function Expenses() {
             setMerchant("");
             setDescription("");
             setPaymentMethod("");
+            setShowNewCategoryInput(false);
+            setNewCategoryName("");
             fetchEntries();
         } catch (err) {
             alert("Failed to save expense entry: " + err);
@@ -117,20 +214,67 @@ function Expenses() {
                                 required
                             />
                         </div>
+
                         <div className="form-group">
-                            <label htmlFor="category">Category</label>
-                            <select
-                                id="category"
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                                required
-                            >
-                                <option value="" disabled>Select a category</option>
-                                {CATEGORIES.map((cat) => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
+                            <div className="label-row">
+                                <label htmlFor="category">Category</label>
+                                <button
+                                    type="button"
+                                    className="manage-link"
+                                    onClick={() => setShowManageModal(true)}
+                                >
+                                    ✎ Manage
+                                </button>
+                            </div>
+                            {!showNewCategoryInput ? (
+                                <select
+                                    id="category"
+                                    value={category}
+                                    onChange={handleCategoryChange}
+                                    required
+                                >
+                                    <option value="" disabled>Select a category</option>
+                                    {allCategories.map((cat) => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
+                                    <option value="__OTHER__">+ Other (add new...)</option>
+                                </select>
+                            ) : (
+                                <div className="new-category-row">
+                                    <input
+                                        type="text"
+                                        placeholder="Type new category name"
+                                        value={newCategoryName}
+                                        onChange={(e) => setNewCategoryName(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                handleAddNewCategory();
+                                            }
+                                        }}
+                                        autoFocus
+                                    />
+                                    <button
+                                        type="button"
+                                        className="add-cat-btn"
+                                        onClick={handleAddNewCategory}
+                                    >
+                                        Add
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="cancel-cat-btn"
+                                        onClick={() => {
+                                            setShowNewCategoryInput(false);
+                                            setNewCategoryName("");
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            )}
                         </div>
+
                         <div className="form-group">
                             <label htmlFor="paymentMethod">Payment Method</label>
                             <select
@@ -145,17 +289,37 @@ function Expenses() {
                                 ))}
                             </select>
                         </div>
+
                         <div className="form-group">
-                            <label htmlFor="merchant">Merchant</label>
-                            <input
-                                type="text"
-                                id="merchant"
-                                placeholder="e.g. Walmart, Shell, Netflix"
-                                value={merchant}
-                                onChange={(e) => setMerchant(e.target.value)}
-                                required
-                            />
+                            <label htmlFor="merchant">
+                                Merchant
+                                {merchantSuggestion && (
+                                    <span className="hint-text"> — press Tab to autocomplete</span>
+                                )}
+                            </label>
+                            <div className="merchant-wrapper">
+                                <div className="merchant-ghost" aria-hidden="true">
+                                    <span className="ghost-typed">{merchant}</span>
+                                    <span className="ghost-suggestion">
+                                        {merchantSuggestion
+                                            ? merchantSuggestion.slice(merchant.length)
+                                            : ""}
+                                    </span>
+                                </div>
+                                <input
+                                    ref={merchantInputRef}
+                                    type="text"
+                                    id="merchant"
+                                    placeholder="e.g. Walmart, Shell, Netflix"
+                                    value={merchant}
+                                    onChange={(e) => setMerchant(e.target.value)}
+                                    onKeyDown={handleMerchantKeyDown}
+                                    autoComplete="off"
+                                    required
+                                />
+                            </div>
                         </div>
+
                         <div className="form-group form-group-full">
                             <label htmlFor="description">Description</label>
                             <textarea
@@ -194,9 +358,7 @@ function Expenses() {
                                     <tr key={entry.id}>
                                         <td>{entry.date}</td>
                                         <td>${parseFloat(entry.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-                                        <td>
-                                            <span className="category-badge">{entry.category}</span>
-                                        </td>
+                                        <td><span className="category-badge">{entry.category}</span></td>
                                         <td>{entry.merchant}</td>
                                         <td>{entry.payment_method}</td>
                                         <td className="description-cell">{entry.description || "—"}</td>
@@ -215,6 +377,43 @@ function Expenses() {
                     )}
                 </div>
             </div>
+
+            {/* Manage categories modal */}
+            {showManageModal && (
+                <div className="modal-overlay" onClick={() => setShowManageModal(false)}>
+                    <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Manage Custom Categories</h3>
+                            <button
+                                className="modal-close"
+                                onClick={() => setShowManageModal(false)}
+                            >
+                                ×
+                            </button>
+                        </div>
+                        <p className="modal-info">
+                            Default categories cannot be removed. Only categories you add yourself appear here.
+                        </p>
+                        {customCategories.length === 0 ? (
+                            <p className="no-entries">No custom categories yet.</p>
+                        ) : (
+                            <ul className="category-manage-list">
+                                {customCategories.map((cat) => (
+                                    <li key={cat.id}>
+                                        <span>{cat.name}</span>
+                                        <button
+                                            className="delete-btn"
+                                            onClick={() => handleDeleteCategory(cat.id)}
+                                        >
+                                            Remove
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

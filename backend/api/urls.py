@@ -8,4 +8,6 @@ urlpatterns = [
     path("income/delete/<int:pk>/", views.IncomeEntryDelete.as_view(), name="delete-income"),
     path("expenses/", views.ExpenseEntryListCreate.as_view(), name="expense-list"),
     path("expenses/delete/<int:pk>/", views.ExpenseEntryDelete.as_view(), name="delete-expense"),
+    path("expense-categories/", views.ExpenseCategoryListCreate.as_view(), name="category-list"),
+    path("expense-categories/delete/<int:pk>/", views.ExpenseCategoryDelete.as_view(), name="delete-category"),
 ]
