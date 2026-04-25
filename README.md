@@ -18,6 +18,13 @@ https://budget.xerobase.app
 
 Hosted on my homelab server
 
+# Credits
+
+Used Tech With Tim's tutorial "Django & React Web App Tutorial - Authentication, Databases, Deployment & More..." to help me get started on this project.
+- https://youtu.be/c-QsfbznSXI?si=h_E_sj6nGaektJfD
+And used Claude.ai to help me develop many of the pages on the site.
+
+
 How to setup the repo for production:
 
 ### First setup cloudflare and setup tunnels to the service. Then add this docker-config.yml file:
