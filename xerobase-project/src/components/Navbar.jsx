@@ -8,10 +8,10 @@ function Navbar() {
         <nav className="navbar">
             <div className="navbar-brand">XeroBase Budgets</div>
             <div className="navbar-links">
-                <button onClick={() => navigate("/")}>Home</button>
+                <button onClick={() => navigate("/")}>Dashboard</button>
+                <button onClick={() => navigate("/budgets")}>Budgets</button>
                 <button onClick={() => navigate("/income")}>Income</button>
                 <button onClick={() => navigate("/expenses")}>Expenses</button>
-                <button onClick={() => navigate("/budgets")}>Budgets</button>
                 <button className="logout-btn" onClick={() => navigate("/logout")}>Logout</button>
             </div>
         </nav>
