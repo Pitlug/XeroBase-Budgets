@@ -45,16 +45,20 @@ function Dashboard() {
     useEffect(() => {
         getNotes();
         fetchCategories();
+        fetchIncome();
+        fetchExpenses();
     }, []);
 
     useEffect(() => {
-        fetchIncome();
-        fetchExpenses();
         fetchBudgets();
     }, [period]);
 
     const fetchIncome = () => {
-        api.get(`/api/income/?period=${period}`)
+        // Fetch ALL income entries (no period filter on the backend) and let the
+        // frontend filter by date. This makes the dashboard resilient to any
+        // server-side filter quirks and avoids a refetch every time the user
+        // changes period.
+        api.get("/api/income/")
             .then((res) => setIncomeEntries(res.data))
             .catch((err) => console.error(err));
     };
@@ -106,15 +110,26 @@ function Dashboard() {
     const periodExpenses = useMemo(() => {
         const [y, m] = period.split("-").map(Number);
         return expenseEntries.filter((e) => {
+            if (!e.date) return false;
             const [ey, em] = e.date.split("-").map(Number);
             return ey === y && em === m;
         });
     }, [expenseEntries, period]);
 
+    // Filter income to selected month (client-side, like expenses)
+    const periodIncome = useMemo(() => {
+        const [y, m] = period.split("-").map(Number);
+        return incomeEntries.filter((e) => {
+            if (!e.date) return false;
+            const [ey, em] = e.date.split("-").map(Number);
+            return ey === y && em === m;
+        });
+    }, [incomeEntries, period]);
+
     // Totals
     const totalIncome = useMemo(
-        () => incomeEntries.reduce((s, e) => s + parseFloat(e.amount || 0), 0),
-        [incomeEntries]
+        () => periodIncome.reduce((s, e) => s + parseFloat(e.amount || 0), 0),
+        [periodIncome]
     );
 
     const totalExpenses = useMemo(
@@ -250,7 +265,7 @@ function Dashboard() {
                         <div className="kpi-label">Income</div>
                         <div className="kpi-value">+${formatMoney(totalIncome)}</div>
                         <div className="kpi-sub">
-                            {incomeEntries.length} {incomeEntries.length === 1 ? "entry" : "entries"} this month
+                            {periodIncome.length} {periodIncome.length === 1 ? "entry" : "entries"} this month
                         </div>
                     </div>
                     <div className="kpi-tile kpi-expense">

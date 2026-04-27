@@ -22,7 +22,7 @@ const formatMoney = (n) =>
 function Budgets() {
     const [period, setPeriod] = useState(getCurrentPeriod());
     const [budgets, setBudgets] = useState([]);
-    const [actualMonthlyIncome, setActualMonthlyIncome] = useState(0);
+    const [allIncome, setAllIncome] = useState([]);
     const [customExpenseCategories, setCustomExpenseCategories] = useState([]);
     const [customSubcategories, setCustomSubcategories] = useState([]);
 
@@ -47,11 +47,11 @@ function Budgets() {
     useEffect(() => {
         fetchExpenseCategories();
         fetchSubcategories();
+        fetchAllIncome();
     }, []);
 
     useEffect(() => {
         fetchBudgets();
-        fetchMonthlyIncome();
     }, [period]);
 
     const fetchBudgets = () => {
@@ -60,15 +60,9 @@ function Budgets() {
             .catch((err) => console.error(err));
     };
 
-    const fetchMonthlyIncome = () => {
-        api.get(`/api/income/?period=${period}`)
-            .then((res) => {
-                const total = res.data.reduce(
-                    (sum, entry) => sum + parseFloat(entry.amount || 0),
-                    0
-                );
-                setActualMonthlyIncome(total);
-            })
+    const fetchAllIncome = () => {
+        api.get("/api/income/")
+            .then((res) => setAllIncome(res.data))
             .catch((err) => console.error(err));
     };
 
@@ -136,6 +130,18 @@ function Budgets() {
         }
         return { projected, actual };
     }, [expenseBudgets]);
+
+    // Total income from the Income page for the selected period (client-side filter)
+    const actualMonthlyIncome = useMemo(() => {
+        const [y, m] = period.split("-").map(Number);
+        return allIncome
+            .filter((e) => {
+                if (!e.date) return false;
+                const [ey, em] = e.date.split("-").map(Number);
+                return ey === y && em === m;
+            })
+            .reduce((sum, entry) => sum + parseFloat(entry.amount || 0), 0);
+    }, [allIncome, period]);
 
     // Zero-based reconciliation (projected income − projected expenses)
     const projectedNet = incomeTotals.projected - expenseTotals.projected;

@@ -1,7 +1,7 @@
 import re
 from decimal import Decimal
 from django.contrib.auth.models import User
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from rest_framework import serializers
 from .models import (
     Note, IncomeEntry, ExpenseEntry, ExpenseCategory,
@@ -30,7 +30,10 @@ class NoteSerializer(serializers.ModelSerializer):
 class IncomeEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = IncomeEntry
-        fields = ["id", "date", "amount", "income_source", "earned_by", "created_at", "user"]
+        fields = [
+            "id", "date", "amount", "income_source", "earned_by",
+            "category", "created_at", "user",
+        ]
         extra_kwargs = {"user": {"read_only": True}}
 
 
@@ -106,17 +109,19 @@ class BudgetEntrySerializer(serializers.ModelSerializer):
             return "0.00"
 
         if obj.entry_type == "income":
-            # Sum IncomeEntry rows for the same user/month, optionally filtered
-            # by income_source matching the budget's category, and earned_by
-            # matching the subcategory if one is set.
+            # Match income entries either by the new `category` field (preferred),
+            # OR — for legacy entries that have no category — fall back to a
+            # case-insensitive match on `income_source`.
             qs = IncomeEntry.objects.filter(
                 user_id=obj.user_id,
                 date__year=year,
                 date__month=month,
-                income_source=obj.category,
+            ).filter(
+                Q(category__iexact=obj.category)
+                | (Q(category="") & Q(income_source__iexact=obj.category))
             )
             if obj.subcategory:
-                qs = qs.filter(earned_by=obj.subcategory)
+                qs = qs.filter(earned_by__iexact=obj.subcategory)
         else:
             qs = ExpenseEntry.objects.filter(
                 user_id=obj.user_id,

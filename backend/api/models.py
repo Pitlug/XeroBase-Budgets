@@ -18,6 +18,7 @@ class IncomeEntry(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     income_source = models.CharField(max_length=255)
     earned_by = models.CharField(max_length=255)
+    category = models.CharField(max_length=100, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
